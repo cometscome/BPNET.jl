@@ -1,10 +1,10 @@
 name = "BPNET"
 uuid = "7aef64d7-9c4e-4f5e-9353-81d57034cdaa"
 authors = ["Yuki Nagai"]
-version = "1.0.0-DEV"
+version = "0.0.1"
 
 [compat]
-julia = "1.6.7"
+julia = "1.10"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
