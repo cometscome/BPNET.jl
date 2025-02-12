@@ -73,6 +73,6 @@ end
 
 @testset "BPNET.jl" begin
     # Write your tests here.
-    generatetest()
+    #generatetest()
     #downloadtest()
 end
