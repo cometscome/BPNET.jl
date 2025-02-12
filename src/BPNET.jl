@@ -1,4 +1,5 @@
 module BPNET
+include("fingerprints.jl")
 include("generate/generate.jl")
 include("train/train.jl")
 include("predict/predict.jl")

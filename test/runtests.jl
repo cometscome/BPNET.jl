@@ -42,7 +42,35 @@ function downloadtest()
     println("Download, decompression, extraction, and cleanup completed. Files are in '$extract_dir'.")
 end
 
+function generatetest()
+    envtypes = ["Ti", "O"]
+    g = Generator(envtypes)
+
+
+    atomtype = "Ti"
+    f1 = FingerPrint(atomtype, envtypes; basistype="Chebyshev", radial_Rc=8.0, radial_N=10, angular_Rc=6.5, angular_N=4)
+
+    push!(g, f1)
+
+    atomtype = "O"
+    f2 = FingerPrint(atomtype, envtypes; basistype="Chebyshev", radial_Rc=8.0, radial_N=10, angular_Rc=6.5, angular_N=4)
+
+    push!(g, f2)
+
+
+
+    exampledir = "extracted_files/aenet-example-02-TiO2-Chebyshev/TiO2-xsf"
+    datafiles = readdir(exampledir, join=true)
+    adddata!(g, datafiles)
+    set_numfiles!(g, 1000)
+
+
+    display(g.numfiles)
+
+end
+
 @testset "BPNET.jl" begin
     # Write your tests here.
-    downloadtest()
+    generatetest()
+    #downloadtest()
 end
