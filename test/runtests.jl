@@ -60,12 +60,14 @@ function generatetest()
 
 
     exampledir = "extracted_files/aenet-example-02-TiO2-Chebyshev/TiO2-xsf"
-    datafiles = readdir(exampledir, join=true)
+    datafiles = filter(x -> x[end-3:end] == ".xsf", readdir(exampledir, join=true))
     adddata!(g, datafiles)
     set_numfiles!(g, 1000)
 
 
     display(g.numfiles)
+
+    filename = make_generatein(g)
 
 end
 
