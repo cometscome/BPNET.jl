@@ -1,0 +1,22 @@
+trainfile = "TiO.train.ascii"
+filename_train = "trainfile_2.jld2"
+filename_test = "testfile_2.jld2"
+modelparamfile ="tempmodelparams_flux.jld2"
+atomtypes = ["Ti","O"]
+numbasiskinds = 1
+maxenergy = 1.0
+testratio = 0.1
+numbatch = 16
+optimiser = "AdamW"
+nepoch = 5000
+gpu = false
+kan = false
+normalize=true
+resnet = false
+
+[Ti]
+layers = [15,15]
+activations = ["tanh", "tanh"]
+[O]
+layers = [15,15]
+activations = ["tanh", "tanh"]
