@@ -13,6 +13,7 @@ include("predict/predict.jl")
 include("train/Fullmemory.jl")
 include("train/BPnet.jl")
 include("train/training.jl")
+include("Luxmodel/luxmodel.jl")
 
 
 
