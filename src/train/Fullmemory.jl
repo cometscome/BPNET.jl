@@ -56,6 +56,9 @@ function Base.getindex(dataset::BPdata_memory{keys,num_of_types,num_of_structs,n
     for itype = 1:num_of_types
         coefficients_batch[itype] = Vector{Matrix{Float64}}(undef, numbasiskinds)
     end
+    #if num_of_types == 1
+    #    error(num_of_types)
+    #end
 
     structindices = Vector{Vector{Int64}}(undef, num_of_types)
     for itype = 1:num_of_types
@@ -135,15 +138,24 @@ function Base.getindex(dataset::BPdata_memory{keys,num_of_types,num_of_structs,n
     #labels = NamedTuple{keys,NTuple{num_of_types,Matrix{Bool}}}(Tuple(structindicesmatrix))
 
     #println(I, "\t", typeof(coefficients_batch[1]))
-    xbatch = @NamedTuple{data::typeof(coefficients_batch[1]), labels::typeof(structindicesmatrix[1])}[]
+    #xbatch = @NamedTuple{data::typeof(coefficients_batch[1]), labels::typeof(structindicesmatrix[1])}[]
+    #xbatch = Tuple{typeof(coefficients_batch[1]),typeof(structindicesmatrix[1])}[]
+    xbatch = Tuple{typeof(Tuple(coefficients_batch[1])),typeof(structindicesmatrix[1])}[]
+
+
     #xbatch = Tuple{typeof(coefficients_batch[1]),typeof(structindicesmatrix[1])}[]
     #return coefficients_batch,structindicesmatrix,energy_batch,num,totalnumatom
 
 
     for itype = 1:num_of_types
-        push!(xbatch, (data=coefficients_batch[itype], labels=structindicesmatrix[itype]))
+        #push!(xbatch, (coefficients_batch[itype], structindicesmatrix[itype]))
+        push!(xbatch, (Tuple(coefficients_batch[itype]), structindicesmatrix[itype]))
+
+        #push!(xbatch, (data=coefficients_batch[itype], labels=structindicesmatrix[itype]))
+
     end
-    return xbatch, energy_batch, num, totalnumatom
+    return Tuple(xbatch), energy_batch, num, totalnumatom
+    #return xbatch, energy_batch, num, totalnumatom
 
     #return (data=data, labels=labels), energy_batch, num, totalnumatom
 

@@ -22,8 +22,13 @@ function trainprocess!(θ, re, state, train_loader, lossfunction)
     loss = 0.0
     for (x, y, num, totalnumatom) in train_loader
         #xd = (data = fmap(CuArray{Float64},x.data), labels= fmap(CuArray{Bool},x.labels))
-        xd = fmap(CuArray{Float64}, x)
-        yd = fmap(CuArray{Float64}, y)
+        #xd = fmap(CuArray{Float64}, x)
+        #yd = fmap(CuArray{Float64}, y)
+        xd = x
+        yd = y
+        #L = lossfunction(re(θ)(xd), yd)
+        #dLdθ = Enzyme.gradient(Reverse, θ -> lossfunction(re(θ)(xd), yd), θ)
+
         L, dLdθ = Flux.withgradient(θ -> lossfunction(re(θ)(xd), yd), θ)
         Optimisers.update!(state, θ, dLdθ[1])
         loss += L
@@ -36,8 +41,10 @@ function testprocess(θ, re, state, test_loader, lossfunction)
     loss = 0.0
     rmse = 0.0
     for (x, y, num, totalnumatom) in test_loader
-        xd = fmap(CuArray{Float64}, x)
-        yd = fmap(CuArray{Float64}, y)
+        #xd = fmap(CuArray{Float64}, x)
+        #yd = fmap(CuArray{Float64}, y)
+        xd = x
+        yd = y
         y_pred = re(θ)(xd) |> Flux.cpu_device()
         loss_t = lossfunction(y_pred, y)
         loss += loss_t

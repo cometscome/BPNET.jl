@@ -1,5 +1,8 @@
 using Lux
-struct BPChain_Lux{L<:NamedTuple} <: Lux.AbstractLuxWrapperLayer{:layers}
+#struct BPChain_Lux{L<:NamedTuple} <: Lux.AbstractLuxWrapperLayer{:layers}
+#    layers::L
+#end
+struct BPChain_Lux{L} <: Lux.AbstractLuxWrapperLayer{:layers}
     layers::L
 end
 export BPChain_Lux
@@ -22,7 +25,12 @@ function BPChain_Lux(inputdata, fingerprintparams::Vector{Vector{FingerPrint_par
 end
 
 function make_multimodel_Lux(atomtypes, fingerprintparams, inputdata, numbasiskinds)
-    model_total = NamedTuple[]# NTuple{numbasiskinds,Lux.Chain} BPnet{numbasiskinds,Flux.Chain}[]
+    #model_total = BPChain_Lux_atom[]# NTuple{numbasiskinds,Lux.Chain} BPnet{numbasiskinds,Flux.Chain}[]
+    model_total = Lux.Parallel[]# NTuple{numbasiskinds,Lux.Chain} BPnet{numbasiskinds,Flux.Chain}[]
+    #model_total = Lux.SkipConnection[]
+    #model_total = Lux.Chain[]#
+    # model_total = NamedTuple[]# NTuple{numbasiskinds,Lux.Chain} BPnet{numbasiskinds,Flux.Chain}[]
+
     kan = inputdata["kan"]
     resnet = inputdata["resnet"]
 
@@ -80,21 +88,35 @@ function make_multimodel_Lux(atomtypes, fingerprintparams, inputdata, numbasiski
             #display(model)
             push!(models, model)
         end
-
-        keys_atom = Tuple(Symbol.(collect(1:numbasiskinds)))
-        model_itype = NamedTuple{keys_atom}(models)
+        #if numbasiskinds > 1
+        model_itype = Lux.Parallel(+, models...)
+        #else
+        #    model_itype = Lux.Parallel(x -> x, models...)
+        #end
+        if numbasiskinds > 1
+            #    model_itype = Lux.Parallel(+, models...)
+        else
+            #    model_itype = Lux.Chain(models[1])
+        end
+        #keys_atom = Tuple(Symbol.(collect(1:numbasiskinds)))
+        #model_itype = NamedTuple{keys_atom}(models)
         #model_itype = BPChain_Lux_atom(NamedTuple{keys_atom}(models)) #Tuple(models)
         display(model_itype)
-
-        push!(model_total, model_itype)
+        #model_parallel = Lux.Chain((x, y) -> model_itype(x) * y) #
+        model_parallel = Lux.Parallel(*, model_itype, Lux.Chain(x -> x))
+        #model_skip = Lux.SkipConnection(model_itype, (out1, x2) -> out1 * x2)
+        #push!(model_total, model_skip)
+        #push!(model_total, model_itype)
+        push!(model_total, model_parallel)
     end
 
     #T = typeof(Tuple(model_total))
     keys = Tuple(Symbol.(atomtypes))
     #display(model_total)
-    models = NamedTuple{keys}(model_total)
+    models = Lux.Parallel(+, model_total...)
+    #models = NamedTuple{keys}(model_total)
     # models = BPChain_Lux{T}(Tuple(model_total))
-    #display(models)
+    display(models)
     return BPChain_Lux(models)
 end
 
@@ -125,18 +147,92 @@ function make_densemodel_Lux(layers, activations, resnet=false)
     return Lux.Chain(modellist...)
 end
 
+using ComponentArrays
 
 function (l::BPChain_Lux)(x, ps, st::NamedTuple)
+    #@show typeof(x)
+    #@show x
+    #display(x)
+    #display(x[1][1])
+    #m1 = l.layers.layer_1.layer_1
+    #m2 = l.layers.layer_1.layer_1
+    #display(m1)
+    #display(m2)
 
+    #@code_warntype l.layers(x..., ps, st)
+    energies, st = Lux.apply(l.layers, x, ps, st)
+    #l.layers(x..., ps, st)
+    return energies, st
+    #println(values(ps))
+    pskeys = keys(ps)
+    i = 1
+    name = pskeys[i]
+    ps_i = ps[name]
+    st_i = getfield(st, name)
+    x_i = x[i]
+    model_i = getfield(l.layers, name)
+    energies = apply_bpmultimodel_Lux!(model_i, x_i, ps_i, st_i)
+    for i = 2:length(pskeys)
+        name = pskeys[i]
+        ps_i = ps[name]
+        st_i = getfield(st, name)
+        x_i = x[i]
+        model_i = getfield(l.layers, name)
+        energies += apply_bpmultimodel_Lux!(model_i, x_i, ps_i, st_i)
+    end
+    return energies, st
 
-    #f(model_i, x, ps) = apply_bpmultimodel_Lux!(model_i, x, ps, st)
-    energies = sum(map(apply_bpmultimodel_Lux!, l.layers, x, ps, st))
+    for (i, name) in enumerate(keys(ps))
+        ps_i = ps[name]
+        st_i = getfield(st, name)
+        x_i = x[i]
+        model_i = getfield(l.layers, name)
+        println(typeof(ps))
+        println(typeof(ps_i))
+        #energy_i = apply_bpmultimodel_Lux!(model_i, x_i, ps_i, st_i)
+        if i == 1
+            energies = apply_bpmultimodel_Lux!(model_i, x_i, ps_i, st_i)
+        else
+            energies += apply_bpmultimodel_Lux!(model_i, x_i, ps_i, st_i)
+        end
+        #energies = apply_bpmultimodel_Lux!(model_i, x_i, ps_i, st_i)
+    end
+    #energies = sum(map(apply_bpmultimodel_Lux!, l.layers, x, ps, st))
 
     return energies, st
 end
 
-function apply_bpmultimodel_Lux!(model_i, x, ps_i, st_i)
+function (l::BPChain_Lux_atom)(x, ps, st::NamedTuple)
+    energies_i, _ = Lux.apply(l.layers[1], x[1], ps[1], st[1])
+    for i = 2:length(l.layers)
+        e, _ = Lux.apply(l.layers[i], x[i], ps[i], st[i])
+        energies_i += e
+    end
+    return energies_i, st
 
+
+    function f(model, x, ps, st)
+        d, _ = Lux.apply(model, x, ps, st)
+        return d
+    end
+    energies_i = sum(map(f, l.layers, x, ps, st))
+    return energies_i, st
+end
+
+function apply_bpmultimodel_Lux!(model_i, x, ps_i, st_i)
+    #display(model_i)
+
+    #@show typeof(ps_i)
+
+    #println(typeof(Tuple(x.data)))
+    #display(x.data)
+    energies_i, _ = Lux.apply(model_i, Tuple(x.data), ps_i, st_i)#model_i(x.data, ps_i, st_i)
+    #display(energies_i)
+    #error("oh")
+
+
+    energies = energies_i * x.labels
+    return energies
 
     function f(model, x, ps, st)
         d, _ = Lux.apply(model, x, ps, st)

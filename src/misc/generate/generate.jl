@@ -1,4 +1,5 @@
 include("wrapper.jl")
+include("generatebasis.jl")
 
 mutable struct Generator
     outputname::String
@@ -44,6 +45,16 @@ function Generator(types; kwargs...)
     isgenerated = false
     return Generator(outputname, numkinds, types, fingerprints, filenames, 0, isolated_energies, fingerprint_names, isgenerated)
 end
+
+function get_filename(g::Generator, i)
+    return g.filenames[i]
+end
+export get_filename
+
+function get_filenames(g::Generator)
+    return g.filenames
+end
+export get_filenames
 
 function make_descriptor(g::Generator)
     if isfile(g.outputname)
