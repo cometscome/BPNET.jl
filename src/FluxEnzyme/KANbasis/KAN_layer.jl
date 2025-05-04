@@ -70,8 +70,10 @@ export get_numbasis
 function KAN_Layer(basis, kind_list)
     numkinds = length(kind_list)
     numbasis = get_numparams(basis, numkinds)
-    an = ones(numbasis)
-    bn = zeros(numbasis)
+    #an = ones(numbasis)
+    #bn = zeros(numbasis)
+    an = rand(numbasis)
+    bn = rand(numbasis)
 
     return KAN_Layer(an, bn, basis, kind_list)
 end
