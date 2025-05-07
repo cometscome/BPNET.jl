@@ -26,7 +26,17 @@ end
 
 
 function (m::BPnet{N,T})(x) where {N,T}
-    energies = sum(map(apply_bpmultimodel, m.chains, x))
+
+    energies = apply_bpmultimodel(m.chains[1], x[1])
+    for i = 2:N
+        energies += apply_bpmultimodel(m.chains[i], x[i])
+    end
+    #@code_warntype map(apply_bpmultimodel, m.chains, x)
+    #error("dd")
+
+    #energies = sum(map(apply_bpmultimodel, m.chains, x))
+
+
     return energies
 end
 
@@ -50,6 +60,7 @@ function apply_bpmultimodel(model_i, x)
     #println(size(x.data))
     #display(apply_model)
     energies_i = sum(map(apply_model, model_i, x.data))
+
     #energies_i = model_i(x.data)#Lux.apply(model_i, x.data, ps, st)
     #println(typeof(energies_i))
     #println(size(energies_i))
@@ -81,7 +92,7 @@ function make_multimodel(atomtypes, fingerprintparams, inputdata, numbasiskinds)
     for (itype, name) in enumerate(atomtypes)
         fingerprint_param = fingerprintparams[itype]
 
-        models = Chain[]
+        models = Flux.Chain[]
         for ikind = 1:numbasiskinds
             if numbasiskinds == 1
                 layers = inputdata[name]["layers"]
@@ -183,22 +194,22 @@ function make_densemodel(layers, activations, resnet=false)
         istart = layers[i]
         iend = layers[i+1]
         if activations[i] == nothing
-            d = Dense(istart, iend)
+            d = Flux.Dense(istart, iend)
         else
             if istart == iend
                 if resnet
-                    d = Parallel(+, x -> x, Dense(istart, iend, activations[i]))
+                    d = Flux.Parallel(+, x -> x, Dense(istart, iend, activations[i]))
                 else
-                    d = Dense(istart, iend, activations[i])
+                    d = Flux.Dense(istart, iend, activations[i])
                 end
             else
-                d = Dense(istart, iend, activations[i])
+                d = Flux.Dense(istart, iend, activations[i])
             end
         end
 
         push!(modellist, d)
     end
-    return Chain(modellist...)
+    return Flux.Chain(modellist...)
 end
 
 function make_kanmodel(layers, activations, kantype, orders)
