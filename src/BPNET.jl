@@ -15,6 +15,8 @@ include("train/BPnet.jl")
 include("train/training.jl")
 include("Luxmodel/luxmodel.jl")
 
+include("train/outputmodel.jl")
+
 
 
 function __init__()
