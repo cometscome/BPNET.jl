@@ -35,6 +35,7 @@ end
 function testprocess(θ, re, state, test_loader, lossfunction)
     loss = 0.0
     rmse = 0.0
+    sse = 0.0
     for (x, y, num, totalnumatom) in test_loader
         xd = fmap(CuArray{Float64}, x)
         yd = fmap(CuArray{Float64}, y)
@@ -42,9 +43,11 @@ function testprocess(θ, re, state, test_loader, lossfunction)
         loss_t = lossfunction(y_pred, y)
         loss += loss_t
         rmse += sqrt(loss_t) / (totalnumatom * test_loader.data.E_scale)
+        sse += loss_t / totalnumatom^2
     end
     loss = loss / length(test_loader)
-    return loss, rmse
+    sse = sse / length(test_loader)
+    return loss, rmse, sse
 end
 
 function trainprocess!(θ::Vector{Float64}, re, state, train_loader, lossfunction)
@@ -63,6 +66,7 @@ end
 function testprocess(θ::Vector{Float64}, re, state, test_loader, lossfunction)
     loss = 0.0
     rmse = 0.0
+    sse = 0.0
     for (x, y, num, totalnumatom) in test_loader
         #display(x)
         #println(typeof(x))
@@ -70,9 +74,11 @@ function testprocess(θ::Vector{Float64}, re, state, test_loader, lossfunction)
         loss_t = lossfunction(y_pred, y)
         loss += loss_t
         rmse += sqrt(loss_t) / (totalnumatom * test_loader.data.E_scale)
+        sse += loss_t / totalnumatom^2# * test_loader.data.E_scale)
     end
     loss = loss / length(test_loader)
-    return loss, rmse
+    sse = sse / length(test_loader)
+    return loss, rmse, sse
 end
 
 function training!(θ, re, state, train_loader, test_loader, lossfunction, nepoch; modelparamfile="tempmodelparams_flux.jld2")
@@ -88,7 +94,7 @@ function training!(θ, re, state, train_loader, test_loader, lossfunction, nepoc
         end
         =#
         if epoch % 10 == 1 || epoch == nepoch
-            loss, rmse = testprocess(θ, re, state, test_loader, lossfunction)
+            loss, rmse, sse = testprocess(θ, re, state, test_loader, lossfunction)
             #=
             loss = 0.0
             rmse = 0.0
@@ -104,7 +110,10 @@ function training!(θ, re, state, train_loader, test_loader, lossfunction, nepoc
             =#
             θvalue = θ |> Flux.cpu_device()
             @save modelparamfile θvalue
-            println("Epoch: $epoch \t Loss: $loss rmse: $(rmse/length(test_loader)) [eV/atom] training mse: $loss_train")
+            rmse = sqrt(sse) / test_loader.data.E_scale
+            #println("Epoch: $epoch \t Loss: $loss rmse: $(rmse/length(test_loader)) [eV/atom] training mse: $loss_train")
+            println("Epoch: $epoch \t Loss: $loss rmse: $(rmse)) [eV/atom] training mse: $loss_train")
+
         end
     end
 
