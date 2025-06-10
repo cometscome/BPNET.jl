@@ -6,13 +6,15 @@ atomtypes = ["Ti","O"]
 numbasiskinds = 1
 maxenergy = 1.0
 testratio = 0.1
-numbatch = 16
+numbatch = 128
 optimiser = "AdamW"
 nepoch = 5000
 gpu = false
 kan = false
 normalize=true
 resnet = false
+LearningRate = 1e-4
+WeightDecay = 1e-5 
 
 [Ti]
 layers = [15,15]

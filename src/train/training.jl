@@ -7,7 +7,17 @@ using Optimisers
 
 function set_state(inputdata, θ)
     if inputdata["optimiser"] == "AdamW"
-        state = Optimisers.setup(Optimisers.AdamW(), θ)
+        if haskey(inputdata, "LearningRate")
+            learning_rate = inputdata["LearningRate"]
+        else
+            learning_rate = 0.001
+        end
+        if haskey(inputdata, "WeightDecay")
+            weight_decay = inputdata["WeightDecay"]
+        else
+            weight_decay = 0.0
+        end
+        state = Optimisers.setup(Optimisers.AdamW(eta=learning_rate, lambda=weight_decay), θ)
     elseif inputdata["optimiser"] == "Adam"
         state = Optimisers.setup(Optimisers.Adam(), θ)
     else
